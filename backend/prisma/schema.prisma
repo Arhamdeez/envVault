@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  files     File[]
+}
+
+model File {
+  id              String   @id @default(cuid())
+  ownerId         String
+  owner           User     @relation(fields: [ownerId], references: [id])
+  s3Key           String
+  filenameMasked  String
+  iv              String   // base64 IV for decryption
+  size            Int
+  expiresAt       DateTime?
+  singleUse       Boolean  @default(false)
+  accessCount     Int      @default(0)
+  createdAt       DateTime @default(now())
+  shares          Share[]
+}
+
+model Share {
+  id              String    @id @default(cuid())
+  fileId          String
+  file            File      @relation(fields: [fileId], references: [id])
+  tokenHash       String
+  expiresAt       DateTime?
+  usageLimit      Int?
+  createdAt       DateTime  @default(now())
+  revoked         Boolean   @default(false)
+  auditLogs       AuditLog[]
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  shareId   String
+  share     Share    @relation(fields: [shareId], references: [id])
+  action    String
+  ip        String?
+  timestamp DateTime @default(now())
+}
+
