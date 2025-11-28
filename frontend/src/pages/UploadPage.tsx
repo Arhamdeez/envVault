@@ -226,9 +226,13 @@ export default function UploadPage() {
                     className="font-mono text-sm"
                     type="password"
                   />
-                  <Button variant="outline" onClick={handleDownloadKey}>
-                    <Key className="h-4 w-4 mr-2" />
-                    Download Key
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadKey}
+                    className="flex items-center gap-2 whitespace-nowrap px-4"
+                  >
+                    <Key className="h-4 w-4" />
+                    <span>Download Key</span>
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">

@@ -39,7 +39,7 @@ async function createApp() {
   const corsOrigin = configService.get('CORS_ORIGIN');
   const allowedOrigins = corsOrigin
     ? corsOrigin.split(',').map((origin: string) => origin.trim())
-    : ['http://localhost:5173'];
+    : ['http://localhost:5173', 'http://localhost:5174'];
   
   // Also allow any Vercel preview/production URLs
   const vercelPattern = /^https:\/\/envvault.*\.vercel\.app$/;

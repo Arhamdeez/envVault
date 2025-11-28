@@ -99,5 +99,45 @@ export class FilesService {
       iv: file.iv,
     };
   }
+
+  async remove(id: string, userId: string) {
+    const file = await this.prisma.file.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        ownerId: true,
+        s3Key: true,
+      },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (file.ownerId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Delete audit logs and shares first
+    await this.prisma.auditLog.deleteMany({
+      where: {
+        share: {
+          fileId: id,
+        },
+      },
+    });
+
+    await this.prisma.share.deleteMany({
+      where: { fileId: id },
+    });
+
+    // Delete file record
+    await this.prisma.file.delete({
+      where: { id },
+    });
+
+    // Delete encrypted blob from S3
+    await this.s3Service.delete(file.s3Key);
+  }
 }
 

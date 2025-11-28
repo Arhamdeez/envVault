@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateFileDto } from './dto/create-file.dto';
@@ -36,6 +36,12 @@ export class FilesController {
       accessCount: file.accessCount,
       createdAt: file.createdAt,
     };
+  }
+
+  @Delete(':id')
+  async remove(@Request() req, @Param('id') id: string) {
+    await this.filesService.remove(id, req.user.id);
+    return { success: true };
   }
 }
 

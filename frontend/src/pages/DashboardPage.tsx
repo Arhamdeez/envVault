@@ -26,8 +26,9 @@ interface File {
 export default function DashboardPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [expandedAuditFileId, setExpandedAuditFileId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<Record<string, any[]>>({});
+  const [auditLoading, setAuditLoading] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFiles();
@@ -53,14 +54,38 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDeleteFile = (fileId: string) => {
+    if (!confirm('Remove this file from your dashboard view? This does not delete it from the server.')) {
+      return;
+    }
+
+    setFiles((prev) => prev.filter((file) => file.id !== fileId));
+    setExpandedAuditFileId((current) => (current === fileId ? null : current));
+    setAuditLogs((prev) => {
+      const updated = { ...prev };
+      delete updated[fileId];
+      return updated;
+    });
+  };
+
   const handleViewAudit = async (fileId: string) => {
+    if (expandedAuditFileId === fileId) {
+      setExpandedAuditFileId(null);
+      return;
+    }
+
+    setAuditLoading(fileId);
     try {
       const response = await auditApi.getFileLogs(fileId);
-      setAuditLogs(response.data);
-      const file = files.find((f) => f.id === fileId);
-      setSelectedFile(file || null);
+    setAuditLogs((prev) => ({
+      ...prev,
+      [fileId]: response.data,
+    }));
+      setExpandedAuditFileId(fileId);
     } catch (err) {
       console.error('Failed to fetch audit logs:', err);
+    } finally {
+      setAuditLoading(null);
     }
   };
 
@@ -104,14 +129,25 @@ export default function DashboardPage() {
                     <CardTitle>{file.filenameMasked}</CardTitle>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewAudit(file.id)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Audit
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewAudit(file.id)}
+                        disabled={auditLoading === file.id}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        {auditLoading === file.id ? 'Loading...' : 'Audit'}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteFile(file.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <CardDescription>
@@ -135,27 +171,23 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  {file.shares.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-sm">Active Shares</h4>
-                      {file.shares.map((share) => (
-                        <div
-                          key={share.id}
-                          className="flex items-center justify-between p-2 bg-muted rounded"
-                        >
-                          <div className="flex items-center gap-2 text-sm">
-                            <LinkIcon className="h-4 w-4" />
-                            <span>
-                              Created {new Date(share.createdAt).toLocaleDateString()} •{' '}
-                              {share._count.auditLogs} accesses
-                            </span>
-                            {share.revoked && (
-                              <span className="px-2 py-1 bg-destructive/10 text-destructive rounded text-xs">
-                                Revoked
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Active Shares</h4>
+                    {file.shares?.filter((share) => !share.revoked).length ? (
+                      file.shares
+                        ?.filter((share) => !share.revoked)
+                        .map((share) => (
+                          <div
+                            key={share.id}
+                            className="flex items-center justify-between p-2 bg-muted rounded"
+                          >
+                            <div className="flex items-center gap-2 text-sm">
+                              <LinkIcon className="h-4 w-4" />
+                              <span>
+                                Created {new Date(share.createdAt).toLocaleDateString()} •{' '}
+                                {share._count?.auditLogs ?? 0} accesses
                               </span>
-                            )}
-                          </div>
-                          {!share.revoked && (
+                            </div>
                             <Button
                               variant="destructive"
                               size="sm"
@@ -163,9 +195,49 @@ export default function DashboardPage() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          )}
+                          </div>
+                        ))
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No active shares</div>
+                    )}
+                  </div>
+
+                  {expandedAuditFileId === file.id && (
+                    <div className="space-y-2 rounded border p-3 bg-muted/40">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">Audit Logs</h4>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => setExpandedAuditFileId(null)}
+                        >
+                          Close
+                        </Button>
+                      </div>
+
+                      {auditLoading === file.id ? (
+                        <div className="text-sm text-muted-foreground">Loading audit logs...</div>
+                      ) : auditLogs[file.id]?.length ? (
+                        <div className="space-y-1 text-sm">
+                          {auditLogs[file.id].map((log) => (
+                            <div
+                              key={log.id}
+                              className="flex items-center justify-between rounded bg-background p-2 shadow-sm"
+                            >
+                              <div>
+                                <span className="font-medium">{log.action}</span>
+                                {log.ip && <span className="text-muted-foreground ml-2">({log.ip})</span>}
+                              </div>
+                              <span className="text-muted-foreground text-xs">
+                                {new Date(log.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="text-sm text-muted-foreground">No audit activity yet.</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -175,39 +247,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {selectedFile && auditLogs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Audit Logs - {selectedFile.filenameMasked}</CardTitle>
-            <CardDescription>Access history for this file</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {auditLogs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
-                  <div>
-                    <span className="font-medium">{log.action}</span>
-                    {log.ip && <span className="text-muted-foreground ml-2">({log.ip})</span>}
-                  </div>
-                  <span className="text-muted-foreground">
-                    {new Date(log.timestamp).toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => {
-                setSelectedFile(null);
-                setAuditLogs([]);
-              }}
-            >
-              Close
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
