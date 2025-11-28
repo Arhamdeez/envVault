@@ -20,5 +20,9 @@ export default defineConfig({
   preview: {
     port: 4173,
   },
+  // Ensure environment variables are available at build time
+  define: {
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL),
+  },
 });
 

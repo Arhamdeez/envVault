@@ -1,11 +1,42 @@
 /// <reference types="../vite-env" />
 import axios from 'axios';
 
-const API_URL = (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3000';
+// Determine API URL based on environment
+const getApiUrl = () => {
+  // In production/preview, use environment variable
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // In development, use localhost
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3000';
+  }
+  
+  // Fallback: try to detect if we're on Vercel and use backend URL
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname.includes('vercel.app')) {
+      // Extract project name and construct backend URL
+      // If frontend is envvault-three.vercel.app, backend might be envvault-backend.vercel.app
+      return 'https://envvault-backend.vercel.app';
+    }
+  }
+  
+  // Final fallback
+  return 'http://localhost:3000';
+};
 
-// Log API URL for debugging (always, to help troubleshoot)
+const API_URL = getApiUrl();
+
+// Log API URL for debugging
 console.log('🔗 API URL:', API_URL);
-console.log('🔍 VITE_API_URL env var:', import.meta.env?.VITE_API_URL || 'NOT SET');
+console.log('🔍 Environment:', {
+  VITE_API_URL: import.meta.env?.VITE_API_URL || 'NOT SET',
+  MODE: import.meta.env?.MODE,
+  DEV: import.meta.env?.DEV,
+  PROD: import.meta.env?.PROD,
+});
 
 const api = axios.create({
   baseURL: API_URL,
