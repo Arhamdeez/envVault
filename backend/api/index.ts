@@ -41,16 +41,28 @@ async function createApp() {
     ? corsOrigin.split(',').map((origin: string) => origin.trim())
     : ['http://localhost:5173'];
   
+  // Also allow any Vercel preview/production URLs
+  const vercelPattern = /^https:\/\/envvault.*\.vercel\.app$/;
+  
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
+      
+      // Check if origin is in allowed list
       if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+        return callback(null, true);
       }
+      
+      // Check if origin matches Vercel pattern
+      if (vercelPattern.test(origin)) {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global validation pipe
