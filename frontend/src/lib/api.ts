@@ -1,9 +1,10 @@
+/// <reference types="../vite-env" />
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3000';
 
 // Log API URL for debugging (only in development)
-if (import.meta.env.DEV) {
+if (import.meta.env?.DEV) {
   console.log('API URL:', API_URL);
 }
 
