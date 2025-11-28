@@ -17,7 +17,6 @@ import { Upload, FileText, Key, Link as LinkIcon } from 'lucide-react';
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
-  const [shareToken, setShareToken] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -95,7 +94,6 @@ export default function UploadPage() {
         expiresAt: expiresAt || undefined,
       });
 
-      setShareToken(shareResponse.data.token);
       const link = `${window.location.origin}/download/${shareResponse.data.token}`;
       setShareLink(link);
     } catch (err: any) {

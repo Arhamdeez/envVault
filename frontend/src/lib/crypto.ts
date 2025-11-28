@@ -61,7 +61,7 @@ export async function encrypt(
       iv: iv,
     },
     key,
-    data,
+    data.buffer as ArrayBuffer,
   );
 
   // Convert to base64

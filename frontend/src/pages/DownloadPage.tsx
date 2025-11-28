@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Alert, AlertDescription } from '../components/ui/Alert';
@@ -11,7 +11,6 @@ import { Download, Lock, FileText } from 'lucide-react';
 
 export default function DownloadPage() {
   const { token } = useParams<{ token?: string }>();
-  const navigate = useNavigate();
   const [shareToken, setShareToken] = useState(token || '');
   const [decryptionKey, setDecryptionKey] = useState('');
   const [loading, setLoading] = useState(false);
