@@ -54,15 +54,15 @@ export async function encrypt(
   // Generate random IV (12 bytes for AES-GCM)
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
-  // Encrypt - convert Uint8Array to ArrayBuffer
-  const dataBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  // Encrypt - create a new Uint8Array to ensure proper buffer type
+  const dataCopy = new Uint8Array(data);
   const encrypted = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
       iv: iv,
     },
     key,
-    dataBuffer,
+    dataCopy,
   );
 
   // Convert to base64
